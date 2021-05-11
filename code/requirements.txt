@@ -1,0 +1,13 @@
+flask
+Flask
+jupyter
+jupyterlab
+#? For compatibility issues
+jupyter_server==1.6.4
+numpy
+matplotlib
+scikit-learn
+librosa
+seaborn 
+pandas
+#torch
