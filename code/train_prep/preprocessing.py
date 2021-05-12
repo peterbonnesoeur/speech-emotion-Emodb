@@ -9,6 +9,7 @@ scaler = StandardScaler()
 
 
 SAMPLING_RATE = 16000
+PADDING = 150000
 
 deutsch_sprechen = False
 language = 0 if deutsch_sprechen else 1
@@ -107,24 +108,24 @@ def addAWGN(signal, num_bits=16, augmented_num=2, snr_low=15, snr_high=30):
     return signal + K.T * noise
 
 
-def getMELspectrogram(audio, sample_rate):
-    #? get the spectrogram form the audio signal
-    mel_spec = librosa.feature.melspectrogram(y=audio,
+def getFFT(audio, sample_rate):
+    fft = librosa.feature.melspectrogram(y=audio,
                                               sr=sample_rate,
                                               n_fft=1024,
-                                              win_length = 512,
                                               window='hamming',
                                               hop_length = 256,
                                               n_mels=128,
-                                              fmax=sample_rate/2
-                                             )
-    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-    return mel_spec_db
+                                        )
+
+    fft_db = librosa.power_to_db(fft, ref=np.max)
+    return fft_db
 
 
 
-def splitIntoChunks(mel_spec,win_size,stride):
+def splitIntoChunks(mel_spec,stride):
     t = mel_spec.shape[1]
+    win_size = mel_spec.shape[0]
+    
     num_of_chunks = int(t/stride)
     chunks = []
     for i in range(num_of_chunks):
@@ -143,7 +144,7 @@ def train_val_split(data_path, ratio = 0.75):
         file_path = os.path.join(data_path, file)
         # Load the data
         audio, sample_rate = librosa.load(file_path, sr = SAMPLING_RATE)
-        signal = np.zeros((150000))
+        signal = np.zeros((PADDING))
         # Zero padding of the signals
         signal[:len(audio)] = audio
         signals.append(signal) 
@@ -208,46 +209,44 @@ def preprocessing_data(data_path, train_val_ratio = 0.75):
     Y_train = np.concatenate([Y_train,aug_labels])
 
 
-    mel_train = []
+    fft_train = []
     print("Calculatin mel spectrograms for train set")
     for i in range(X_train.shape[0]):
-        mel_spectrogram = getMELspectrogram(X_train[i,:], sample_rate=SAMPLING_RATE)
-        mel_train.append(mel_spectrogram)
+        fft = getFFT(X_train[i,:], sample_rate=SAMPLING_RATE)
+        fft_train.append(fft)
         print("\r Processed {}/{} files".format(i,X_train.shape[0]),end='')
     print('')
     del X_train
 
-    mel_val = []
+    fft_val = []
     print("Calculatin mel spectrograms for val set")
     for i in range(X_val.shape[0]):
-        mel_spectrogram = getMELspectrogram(X_val[i,:], sample_rate=SAMPLING_RATE)
-        mel_val.append(mel_spectrogram)
+        fft = getFFT(X_val[i,:], sample_rate=SAMPLING_RATE)
+        fft_val.append(fft)
         print("\r Processed {}/{} files".format(i,X_val.shape[0]),end='')
     print('')
     del X_val
 
 
-    # get chunks
-    # train set
     print("Cut the spectrogram into chunks")
 
-    mel_train_chunked = []
-    for mel_spec in mel_train:
-        chunks = splitIntoChunks(mel_spec, win_size=128,stride=64)
-        mel_train_chunked.append(chunks)
+    fft_train_chunked = []
+    for fft_spec in fft_train:
+        chunks = splitIntoChunks(fft_spec, stride=42)
+        fft_train_chunked.append(chunks)
     print("Number of chunks is {}".format(chunks.shape[0]))
     # val set
-    mel_val_chunked = []
-    for mel_spec in mel_val:
-        chunks = splitIntoChunks(mel_spec, win_size=128,stride=64)
-        mel_val_chunked.append(chunks)
+    fft_val_chunked = []
+    for fft_spec in fft_val:
+        chunks = splitIntoChunks(fft_spec, stride=42)
+        fft_val_chunked.append(chunks)
     print("Number of chunks is {}".format(chunks.shape[0]))
 
 
-    X_train = np.stack(mel_train_chunked,axis=0)
+    X_train = np.stack(fft_train_chunked,axis=0)
     X_train = np.expand_dims(X_train,2)
     print('Shape of X_train: ',X_train.shape)
-    X_val = np.stack(mel_val_chunked,axis=0)
+    X_val = np.stack(fft_val_chunked,axis=0)
     X_val = np.expand_dims(X_val,2)
     print('Shape of X_val: ',X_val.shape)
 
@@ -262,25 +261,24 @@ def preprocessing_data(data_path, train_val_ratio = 0.75):
     X_val = scaler.transform(X_val)
     X_val = np.reshape(X_val, newshape=(b,t,c,h,w))
 
-    del mel_train_chunked
-    del mel_train
-    del mel_val_chunked
-    del mel_val
+    del fft_train_chunked
+    del fft_train
+    del fft_val_chunked
+    del fft_val
 
     return X_train, Y_train, X_val, Y_val
 
 def preprocessing_unit(file):
     audio, sample_rate = librosa.load(file ,sr=SAMPLING_RATE)
-    signal = np.zeros((int(150000,)))
+    signal = np.zeros((int(PADDING,)))
     signal[:len(audio)] = audio
-    mel_spectrogram = getMELspectrogram(signal, SAMPLING_RATE)
-    print(mel_spectrogram.shape)
-    chunks = splitIntoChunks(mel_spectrogram, win_size=128,stride=64)
+    mel_spectrogram = getFFT(signal, SAMPLING_RATE)
+    chunks = splitIntoChunks(mel_spectrogram, stride=42)
     
 
     X = np.stack(chunks,axis=0)
-    X = np.expand_dims(X,1)
     X = np.expand_dims(X,0)
+    X = np.expand_dims(X,2)
 
     print(X.shape)
 

@@ -24,7 +24,7 @@ RUN rm download.zip
 RUN apt-get update
 RUN pip3 install -r requirements.txt
 
-RUN pip3 install matplotlib flask Flask librosa jupyterlab jupyter_server==1.6.4 seaborn scikit-learn
+RUN pip3 install matplotlib flask Flask librosa jupyterlab jupyter_server==1.6.4 seaborn scikit-learn einops
 
 #Nvidia driver troubleshoot
 RUN rm -rf .nv/

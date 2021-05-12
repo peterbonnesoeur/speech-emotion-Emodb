@@ -10,4 +10,4 @@ scikit-learn
 librosa
 seaborn 
 pandas
-#torch
+einops

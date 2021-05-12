@@ -3,10 +3,10 @@ services:
 
 
   test:
-    container_name: test
+    container_name: visium_delivery
     build:
       context: ../
-      dockerfile: deployments/test/Dockerfile
+      dockerfile: deployments/visium_delivery/Dockerfile
     ports:
       - "5000:5000"
       - "8888:8888"
