@@ -47,7 +47,7 @@ There should be two links:
 
     For a fast result, I left 2 epochs in the training parameters. To have good results, try with a higher number of epochs. I recommend 200 epochs.
 
-    Please adjust the batch size depending on your hardware for better results/loadability of the model (A batch size of 32 correspond to 8Gb on a 3070RTX).
+    Please adjust the batch size depending on your hardware for better results/loadability of the model (A batch size of 21 correspond to 8Gb on a 3070RTX).
 
 
 - Eval link :

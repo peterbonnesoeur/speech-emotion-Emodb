@@ -19,7 +19,7 @@ def cli():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--ratio', type=float, help='Define the train val ratio for the data preparation', default = TRAIN_VAL_RATIO)
-    parser.add_argument('--epochs', type=int, help='Number of epochs for the training', default=300)
+    parser.add_argument('--epochs', type=int, help='Number of epochs for the training', default=200)
     parser.add_argument('--lr', type=float, help = 'Set the learning rate for the training step', default=0.005)
     parser.add_argument('--batch_size', type=int, help = 'Set the batch size for the training step', default = 21)
 
@@ -36,17 +36,19 @@ def cli():
 
 def main():
 
-    seed = 42
+    #? define the seed for the random sampling of the dataset
+    seed = 1
     np.random.seed(seed)
 
     args = cli()
 
 
     if args.predict and not os.path.isdir("models"):
+        #? if no model is trained for a prediction task, train a model
         args.train == True
 
     if args.prep or (args.train and not os.path.isdir("arrays")):
-        print(args.data)
+        #? If no data is prepared for the training, prepare the data
         X_train, Y_train, X_val, Y_val = preprocessing_data(args.data, train_val_ratio = args.ratio)
         SAVE_PATH = os.path.join(os.getcwd(),'arrays')
         os.makedirs('arrays',exist_ok=True)
@@ -57,6 +59,7 @@ def main():
 
     if args.train:
         with open(r"arrays/data.pickle", "rb") as input_file:
+            #? open the preprocessed data
            (X_train, Y_train, X_val, Y_val)  = pickle.load(input_file)
 
         train(args, X_train, Y_train, X_val, Y_val)
@@ -80,11 +83,13 @@ def predict(args):
 
     #? Scale the data
     scaler = PytorchScaler()
-    X_ = scaler(X)
+    X = scaler(X)
 
     print("Load model")
     LOAD_PATH = os.path.join(os.getcwd(),'models')
     model = HybridModel(len(emotion_id), X.shape[1]).to(device)
+
+    #? Fetch model.pt
     model.load_state_dict(torch.load(os.path.join(LOAD_PATH,'model.pt')))
     output_logits, output_softmax = model(X)
     predictions = torch.argmax(output_softmax,dim=1)
@@ -118,7 +123,8 @@ def train(args,X_train, Y_train, X_val, Y_val ):
     best_model = copy.deepcopy(model.state_dict())
     best_val = 0
 
-    X_train_tensor, Y_train_tensor, X_val_tensor, Y_val_tensor = Dataloader(X_train, X_val, Y_train, Y_val, device = device)
+    X_train_tensor, Y_train_tensor, \
+        X_val_tensor, Y_val_tensor = Dataloader(X_train, X_val, Y_train, Y_val, device = device)
 
     for epoch in range(EPOCHS):
         # schuffle data
@@ -147,7 +153,8 @@ def train(args,X_train, Y_train, X_val, Y_val ):
         if val_acc > best_val:
             best_val = val_acc
             best_model = copy.deepcopy(model.state_dict())
-        print(f"\nEpoch {epoch} --> loss:{epoch_loss:.4f}, acc:{epoch_acc:.2f}%, val_loss:{val_loss:.4f}, val_acc:{val_acc:.2f}%")
+        print(f"\nEpoch {epoch} --> loss:{epoch_loss:.4f}, acc:{epoch_acc:.2f}%"
+                ", val_loss:{val_loss:.4f}, val_acc:{val_acc:.2f}%")
 
     SAVE_PATH = os.path.join(os.getcwd(),'models')
 
@@ -180,9 +187,6 @@ def evaluation(X_val, Y_val):
     X_val_tensor = scaler(X_val_tensor).to(device)
 
     test_loss, test_acc, predictions = validate(X_val_tensor,Y_val_tensor)
-    #X_test_tensor = torch.tensor(X_val,device=device).float()
-    #Y_test_tensor = torch.tensor(Y_val,dtype=torch.long,device=device)
-    #test_loss, test_acc, predictions = validate(X_test_tensor,Y_test_tensor)
     print(f'Test loss is {test_loss:.3f}')
     print(f'Test accuracy is {test_acc:.2f}%')
 
