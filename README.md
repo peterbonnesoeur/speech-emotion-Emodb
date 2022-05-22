@@ -1,7 +1,7 @@
 # Report Visium - speech emotion detection from the Emo-DB
 
 
-This project's goal was to recognize the emotions from different speech files coming from the Emo-DB dataset.
+This project's goal was to recognize the emotions from different speech files coming from the [Emo-DB dataset](http://emodb.bilderbar.info/index-1280.html). 
 
 The data is processed, trained and the resulting model is evaluated in this project.
 
